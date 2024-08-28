@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mindexDB Demo</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
+    <style>
+        .result {
+            max-height: 100px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-4">mindexDB Demo</h1>
+        
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Set / Get</h2>
+            <input type="text" id="setKey" placeholder="Key" class="border p-2 mr-2">
+            <input type="text" id="setValue" placeholder="Value" class="border p-2 mr-2">
+            <button onclick="setKeyValue()" class="bg-blue-500 text-white px-4 py-2 rounded">Set</button>
+            <button onclick="getKeyValue()" class="bg-green-500 text-white px-4 py-2 rounded ml-2">Get</button>
+            <div id="setGetResult" class="mt-2 p-2 bg-gray-100 result"></div>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">HSet / HGet</h2>
+            <input type="text" id="hsetHash" placeholder="Hash" class="border p-2 mr-2">
+            <input type="text" id="hsetKey" placeholder="Key" class="border p-2 mr-2">
+            <input type="text" id="hsetValue" placeholder="Value" class="border p-2 mr-2">
+            <button onclick="hsetKeyValue()" class="bg-blue-500 text-white px-4 py-2 rounded">HSet</button>
+            <button onclick="hgetKeyValue()" class="bg-green-500 text-white px-4 py-2 rounded ml-2">HGet</button>
+            <div id="hsetHgetResult" class="mt-2 p-2 bg-gray-100 result"></div>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Delete</h2>
+            <input type="text" id="deleteKey" placeholder="Key" class="border p-2 mr-2">
+            <button onclick="deleteKey()" class="bg-red-500 text-white px-4 py-2 rounded">Delete</button>
+            <div id="deleteResult" class="mt-2 p-2 bg-gray-100 result"></div>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">Expire</h2>
+            <input type="text" id="expireKey" placeholder="Key" class="border p-2 mr-2">
+            <input type="number" id="expireSeconds" placeholder="Seconds" class="border p-2 mr-2">
+            <button onclick="expireKey()" class="bg-yellow-500 text-white px-4 py-2 rounded">Expire</button>
+            <div id="expireResult" class="mt-2 p-2 bg-gray-100 result"></div>
+        </div>
+
+        <div class="mb-4">
+            <h2 class="text-xl font-semibold mb-2">List Operations</h2>
+            <select id="listOperation" class="border p-2 mr-2">
+                <option value="lpush">LPUSH</option>
+                <option value="rpush">RPUSH</option>
+                <option value="lpop">LPOP</option>
+                <option value="rpop">RPOP</option>
+                <option value="lrange">LRANGE</option>
+            </select>
+            <input type="text" id="listKey" placeholder="Key" class="border p-2 mr-2">
+            <input type="text" id="listValue" placeholder="Value" class="border p-2 mr-2">
+            <input type="number" id="listStart" placeholder="Start" class="border p-2 mr-2" style="display: none;">
+            <input type="number" id="listStop" placeholder="Stop" class="border p-2 mr-2" style="display: none;">
+            <button onclick="listOperation()" class="bg-purple-500 text-white px-4 py-2 rounded">Execute</button>
+            <div id="listResult" class="mt-2 p-2 bg-gray-100 result"></div>
+        </div>
+    </div>
+
+    <script src="mindexdb.js"></script>
+    <script>
+        // Demo functions
+        const db = new MindexDB('myDatabase');
+        db.connect().then(() => console.log('Connected to MindexDB')).catch(console.error);
+
+        async function setKeyValue() {
+            const key = document.getElementById('setKey').value;
+            const value = document.getElementById('setValue').value;
+            await db.set(key, value);
+            document.getElementById('setGetResult').textContent = `Set ${key} = ${value}`;
+        }
+
+        async function getKeyValue() {
+            const key = document.getElementById('setKey').value;
+            const value = await db.get(key);
+            document.getElementById('setGetResult').textContent = `Get ${key} = ${value}`;
+        }
+
+        async function hsetKeyValue() {
+            const hash = document.getElementById('hsetHash').value;
+            const key = document.getElementById('hsetKey').value;
+            const value = document.getElementById('hsetValue').value;
+            await db.hset(hash, key, value);
+            document.getElementById('hsetHgetResult').textContent = `HSet ${hash} ${key} = ${value}`;
+        }
+
+        async function hgetKeyValue() {
+            const hash = document.getElementById('hsetHash').value;
+            const key = document.getElementById('hsetKey').value;
+            const value = await db.hget(hash, key);
+            document.getElementById('hsetHgetResult').textContent = `HGet ${hash} ${key} = ${value}`;
+        }
+
+        async function deleteKey() {
+            const key = document.getElementById('deleteKey').value;
+            await db.del(key);
+            document.getElementById('deleteResult').textContent = `Deleted ${key}`;
+        }
+
+        async function expireKey() {
+            const key = document.getElementById('expireKey').value;
+            const seconds = parseInt(document.getElementById('expireSeconds').value);
+            await db.expire(key, seconds);
+            document.getElementById('expireResult').textContent = `Set expiry for ${key} to ${seconds} seconds`;
+        }
+
+        async function listOperation() {
+            const operation = document.getElementById('listOperation').value;
+            const key = document.getElementById('listKey').value;
+            const value = document.getElementById('listValue').value;
+            let result;
+
+            switch (operation) {
+                case 'lpush':
+                case 'rpush':
+                    result = await db[operation](key, value);
+                    break;
+                case 'lpop':
+                case 'rpop':
+                    result = await db[operation](key);
+                    break;
+                case 'lrange':
+                    const start = parseInt(document.getElementById('listStart').value);
+                    const stop = parseInt(document.getElementById('listStop').value);
+                    result = await db.lrange(key, start, stop);
+                    break;
+            }
+
+            document.getElementById('listResult').textContent = `${operation} result: ${JSON.stringify(result)}`;
+        }
+
+        document.getElementById('listOperation').addEventListener('change', function() {
+            const operation = this.value;
+            document.getElementById('listValue').style.display = (operation === 'lpop' || operation === 'rpop') ? 'none' : 'inline-block';
+            document.getElementById('listStart').style.display = operation === 'lrange' ? 'inline-block' : 'none';
+            document.getElementById('listStop').style.display = operation === 'lrange' ? 'inline-block' : 'none';
+        });
+    </script>
+</body>
+</html>
