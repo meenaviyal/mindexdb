@@ -3,149 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mindexDB Demo</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.js"></script>
-    <style>
-        .result {
-            max-height: 100px;
-            overflow-y: auto;
-        }
-    </style>
+    <title>MindexDB Demo</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-2xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h1 class="text-2xl font-bold mb-4">mindexDB Demo</h1>
-        
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold mb-2">Set / Get</h2>
-            <input type="text" id="setKey" placeholder="Key" class="border p-2 mr-2">
-            <input type="text" id="setValue" placeholder="Value" class="border p-2 mr-2">
-            <button onclick="setKeyValue()" class="bg-blue-500 text-white px-4 py-2 rounded">Set</button>
-            <button onclick="getKeyValue()" class="bg-green-500 text-white px-4 py-2 rounded ml-2">Get</button>
-            <div id="setGetResult" class="mt-2 p-2 bg-gray-100 result"></div>
+<body class="bg-gray-100 flex flex-col min-h-screen">
+    <header class="bg-blue-600 text-white">
+        <div class="container mx-auto px-4 py-4">
+            <div class="flex justify-between items-center">
+                <h1 class="text-2xl font-bold">MindexDB</h1>
+                <nav>
+                    <ul class="flex space-x-4">
+                        <li><a href="#about" class="hover:text-blue-200">About</a></li>
+                        <li><a href="#usage" class="hover:text-blue-200">Usage</a></li>
+                        <li><a href="#demo" class="hover:text-blue-200">Demo</a></li>
+                        <li><a href="#compatibility" class="hover:text-blue-200">Compatibility</a></li>
+                    </ul>
+                </nav>
+            </div>
         </div>
+    </header>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold mb-2">HSet / HGet</h2>
-            <input type="text" id="hsetHash" placeholder="Hash" class="border p-2 mr-2">
-            <input type="text" id="hsetKey" placeholder="Key" class="border p-2 mr-2">
-            <input type="text" id="hsetValue" placeholder="Value" class="border p-2 mr-2">
-            <button onclick="hsetKeyValue()" class="bg-blue-500 text-white px-4 py-2 rounded">HSet</button>
-            <button onclick="hgetKeyValue()" class="bg-green-500 text-white px-4 py-2 rounded ml-2">HGet</button>
-            <div id="hsetHgetResult" class="mt-2 p-2 bg-gray-100 result"></div>
+    <main class="flex-grow">
+        <div class="container mx-auto px-4 py-8">
+            <h1 class="text-4xl font-bold mb-8 text-center">MindexDB Demo</h1>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="space-y-6">
+                    <div id="about" class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-4">About MindexDB</h2>
+                        <p class="mb-4">MindexDB is a lightweight, Redis-like wrapper for IndexedDB, providing a simple and intuitive API for working with client-side storage in web applications.</p>
+                        <h3 class="text-xl font-semibold mb-2">Features</h3>
+                        <ul class="list-disc list-inside mb-4">
+                            <li>Simple Redis-like API</li>
+                            <li>Support for key-value, hash, and list operations</li>
+                            <li>Key expiration using Web Workers</li>
+                            <li>Promise-based interface</li>
+                            <li>TypeScript-friendly with JSDoc comments</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="usage" class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-4">Usage Example</h2>
+                        <pre><code class="language-javascript">
+// Create a new instance of MindexDB
+const db = new MindexDB('myDatabase');
+
+// Connect to the database
+await db.connect();
+
+// Set a key-value pair
+await db.set('user:1', 'John Doe');
+
+// Get a value
+const user = await db.get('user:1');
+console.log(user); // Output: John Doe
+
+// Set a hash field
+await db.hset('user:2', 'name', 'Jane Doe');
+
+// Get a hash field
+const name = await db.hget('user:2', 'name');
+console.log(name); // Output: Jane Doe
+
+// Push items to a list
+await db.rpush('mylist', 'item1', 'item2', 'item3');
+
+// Get items from a list
+const items = await db.lrange('mylist', 0, -1);
+console.log(items); // Output: ['item1', 'item2', 'item3']
+
+// Set expiration on a key
+await db.expire('user:1', 60); // Expires in 60 seconds
+                        </code></pre>
+                    </div>
+                </div>
+                
+                <div class="space-y-6">
+                    <div id="demo" class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-4">Interactive Demo</h2>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block mb-2 font-semibold">Operation</label>
+                                <select id="operation" class="w-full p-2 border rounded">
+                                    <option value="set">Set</option>
+                                    <option value="get">Get</option>
+                                    <option value="hset">HSet</option>
+                                    <option value="hget">HGet</option>
+                                    <option value="rpush">RPush</option>
+                                    <option value="lrange">LRange</option>
+                                    <option value="del">Delete</option>
+                                    <option value="expire">Expire</option>
+                                </select>
+                            </div>
+                            <div id="inputFields" class="space-y-2">
+                                <!-- Input fields will be dynamically added here -->
+                            </div>
+                            <button id="executeBtn" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Execute</button>
+                            <div id="result" class="mt-4 p-4 bg-gray-100 rounded hidden"></div>
+                        </div>
+                    </div>
+                    
+                    <div id="compatibility" class="bg-white p-6 rounded-lg shadow-md">
+                        <h2 class="text-2xl font-semibold mb-4">Browser Compatibility</h2>
+                        <p>MindexDB works in all modern browsers that support IndexedDB and Web Workers:</p>
+                        <ul class="list-disc list-inside mt-2">
+                            <li>Chrome 24+</li>
+                            <li>Firefox 16+</li>
+                            <li>Safari 10+</li>
+                            <li>Edge 12+</li>
+                            <li>Opera 15+</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
         </div>
+    </main>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold mb-2">Delete</h2>
-            <input type="text" id="deleteKey" placeholder="Key" class="border p-2 mr-2">
-            <button onclick="deleteKey()" class="bg-red-500 text-white px-4 py-2 rounded">Delete</button>
-            <div id="deleteResult" class="mt-2 p-2 bg-gray-100 result"></div>
+    <footer class="bg-gray-800 text-white py-4 mt-8">
+        <div class="container mx-auto px-4 text-center">
+            <p>&copy; 2023 MindexDB. All rights reserved.</p>
+            <a href="https://github.com/meenaviyal/mindexdb" target="_blank" rel="noopener noreferrer" class="text-blue-300 hover:text-blue-100">
+                View on GitHub
+            </a>
         </div>
+    </footer>
 
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold mb-2">Expire</h2>
-            <input type="text" id="expireKey" placeholder="Key" class="border p-2 mr-2">
-            <input type="number" id="expireSeconds" placeholder="Seconds" class="border p-2 mr-2">
-            <button onclick="expireKey()" class="bg-yellow-500 text-white px-4 py-2 rounded">Expire</button>
-            <div id="expireResult" class="mt-2 p-2 bg-gray-100 result"></div>
-        </div>
-
-        <div class="mb-4">
-            <h2 class="text-xl font-semibold mb-2">List Operations</h2>
-            <select id="listOperation" class="border p-2 mr-2">
-                <option value="lpush">LPUSH</option>
-                <option value="rpush">RPUSH</option>
-                <option value="lpop">LPOP</option>
-                <option value="rpop">RPOP</option>
-                <option value="lrange">LRANGE</option>
-            </select>
-            <input type="text" id="listKey" placeholder="Key" class="border p-2 mr-2">
-            <input type="text" id="listValue" placeholder="Value" class="border p-2 mr-2">
-            <input type="number" id="listStart" placeholder="Start" class="border p-2 mr-2" style="display: none;">
-            <input type="number" id="listStop" placeholder="Stop" class="border p-2 mr-2" style="display: none;">
-            <button onclick="listOperation()" class="bg-purple-500 text-white px-4 py-2 rounded">Execute</button>
-            <div id="listResult" class="mt-2 p-2 bg-gray-100 result"></div>
-        </div>
-    </div>
-
-    <script src="mindexdb.js"></script>
     <script>
-        // Demo functions
-        const db = new MindexDB('myDatabase');
-        db.connect().then(() => console.log('Connected to MindexDB')).catch(console.error);
+        const operationSelect = document.getElementById('operation');
+        const inputFields = document.getElementById('inputFields');
+        const executeBtn = document.getElementById('executeBtn');
+        const resultDiv = document.getElementById('result');
 
-        async function setKeyValue() {
-            const key = document.getElementById('setKey').value;
-            const value = document.getElementById('setValue').value;
-            await db.set(key, value);
-            document.getElementById('setGetResult').textContent = `Set ${key} = ${value}`;
+        // Mock MindexDB implementation for demo purposes
+        const mockDB = {
+            set: (key, value) => `Set ${key} to ${value}`,
+            get: (key) => `Value for ${key}`,
+            hset: (hash, key, value) => `Set ${key} in hash ${hash} to ${value}`,
+            hget: (hash, key) => `Value for ${key} in hash ${hash}`,
+            rpush: (key, value) => `Pushed ${value} to the end of list ${key}`,
+            lrange: (key, start, end) => `Range for list ${key}: [${start}, ${end}]`,
+            del: (key) => `Deleted ${key}`,
+            expire: (key, seconds) => `Set expiration for ${key} to ${seconds} seconds`,
+        };
+
+        const operationInputs = {
+            set: ['Key', 'Value'],
+            get: ['Key'],
+            hset: ['Hash', 'Key', 'Value'],
+            hget: ['Hash', 'Key'],
+            rpush: ['List Key', 'Value'],
+            lrange: ['List Key', 'Start', 'End'],
+            del: ['Key'],
+            expire: ['Key', 'Seconds'],
+        };
+
+        function updateInputFields() {
+            const operation = operationSelect.value;
+            inputFields.innerHTML = '';
+            operationInputs[operation].forEach(label => {
+                const input = document.createElement('input');
+                input.type = 'text';
+                input.placeholder = label;
+                input.className = 'w-full p-2 border rounded';
+                inputFields.appendChild(input);
+            });
         }
 
-        async function getKeyValue() {
-            const key = document.getElementById('setKey').value;
-            const value = await db.get(key);
-            document.getElementById('setGetResult').textContent = `Get ${key} = ${value}`;
+        function executeOperation() {
+            const operation = operationSelect.value;
+            const args = Array.from(inputFields.children).map(input => input.value);
+            const result = mockDB[operation](...args);
+            resultDiv.textContent = result;
+            resultDiv.classList.remove('hidden');
         }
 
-        async function hsetKeyValue() {
-            const hash = document.getElementById('hsetHash').value;
-            const key = document.getElementById('hsetKey').value;
-            const value = document.getElementById('hsetValue').value;
-            await db.hset(hash, key, value);
-            document.getElementById('hsetHgetResult').textContent = `HSet ${hash} ${key} = ${value}`;
-        }
+        operationSelect.addEventListener('change', updateInputFields);
+        executeBtn.addEventListener('click', executeOperation);
 
-        async function hgetKeyValue() {
-            const hash = document.getElementById('hsetHash').value;
-            const key = document.getElementById('hsetKey').value;
-            const value = await db.hget(hash, key);
-            document.getElementById('hsetHgetResult').textContent = `HGet ${hash} ${key} = ${value}`;
-        }
+        // Initialize input fields
+        updateInputFields();
 
-        async function deleteKey() {
-            const key = document.getElementById('deleteKey').value;
-            await db.del(key);
-            document.getElementById('deleteResult').textContent = `Deleted ${key}`;
-        }
-
-        async function expireKey() {
-            const key = document.getElementById('expireKey').value;
-            const seconds = parseInt(document.getElementById('expireSeconds').value);
-            await db.expire(key, seconds);
-            document.getElementById('expireResult').textContent = `Set expiry for ${key} to ${seconds} seconds`;
-        }
-
-        async function listOperation() {
-            const operation = document.getElementById('listOperation').value;
-            const key = document.getElementById('listKey').value;
-            const value = document.getElementById('listValue').value;
-            let result;
-
-            switch (operation) {
-                case 'lpush':
-                case 'rpush':
-                    result = await db[operation](key, value);
-                    break;
-                case 'lpop':
-                case 'rpop':
-                    result = await db[operation](key);
-                    break;
-                case 'lrange':
-                    const start = parseInt(document.getElementById('listStart').value);
-                    const stop = parseInt(document.getElementById('listStop').value);
-                    result = await db.lrange(key, start, stop);
-                    break;
-            }
-
-            document.getElementById('listResult').textContent = `${operation} result: ${JSON.stringify(result)}`;
-        }
-
-        document.getElementById('listOperation').addEventListener('change', function() {
-            const operation = this.value;
-            document.getElementById('listValue').style.display = (operation === 'lpop' || operation === 'rpop') ? 'none' : 'inline-block';
-            document.getElementById('listStart').style.display = operation === 'lrange' ? 'inline-block' : 'none';
-            document.getElementById('listStop').style.display = operation === 'lrange' ? 'inline-block' : 'none';
-        });
+        // Initialize Prism.js
+        Prism.highlightAll();
     </script>
 </body>
 </html>
