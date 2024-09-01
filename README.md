@@ -58,6 +58,10 @@ console.log(items); // Output: ['item1', 'item2', 'item3']
 
 // Set expiration on a key
 await db.expire('user:1', 60); // Expires in 60 seconds
+
+// Check TTL of a key
+const remainingTTL = await db.ttl('myKey');
+console.log(`Remaining TTL: ${remainingTTL} seconds`);
 ```
 
 ## API Reference

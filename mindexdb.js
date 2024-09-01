@@ -228,6 +228,40 @@ class MindexDB {
         this.worker.postMessage({ key, expireAt });
     }
 
+
+    /**
+     * Get the remaining time to live for a key
+     * @param {string} key - The key to check
+     * @returns {number} The remaining time to live in seconds, or -1 if the key has no associated expire time, or -2 if the key does not exist
+     */
+       async ttl(key) {
+        return this._performTransaction('expiry', 'readonly', async (store) => {
+            const expiryData = await store.get(key);
+            if (!expiryData) {
+                // Check if the key exists in any of the data stores
+                const keyExists = await this._checkKeyExists(key);
+                return keyExists ? -1 : -2;
+            }
+            const remainingTime = Math.ceil((expiryData.expireAt - Date.now()) / 1000);
+            return remainingTime > 0 ? remainingTime : -2;
+        });
+    }
+
+    /**
+     * Check if a key exists in any of the data stores
+     * @private
+     * @param {string} key - The key to check
+     * @returns {boolean} True if the key exists, false otherwise
+     */
+    async _checkKeyExists(key) {
+        const stores = ['keyValue', 'hash', 'list'];
+        for (const storeName of stores) {
+            const exists = await this._performTransaction(storeName, 'readonly', (store) => store.count(key));
+            if (exists > 0) return true;
+        }
+        return false;
+    }
+
     /**
      * Set the expiration time for a key in the expiry store
      * @private
