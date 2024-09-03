@@ -163,11 +163,26 @@ class MindexDB {
      * @returns {number} The length of the list after the operation
      */
     async lpush(key, ...values) {
-        return this._performTransaction('list', 'readwrite', async (store) => {
-            const list = await store.get(key) || [];
-            list.unshift(...values);
-            store.put(list, key);
-            return list.length;
+        const transaction = this.db.transaction('list', 'readwrite');
+        const store = transaction.objectStore('list');
+        
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(key);
+            
+            getRequest.onerror = () => reject(getRequest.error);
+            
+            getRequest.onsuccess = () => {
+                let list = getRequest.result;
+                if (!Array.isArray(list)) {
+                    list = [];
+                }
+                list.unshift(...values);
+                
+                const putRequest = store.put(list, key);
+                
+                putRequest.onerror = () => reject(putRequest.error);
+                putRequest.onsuccess = () => resolve(list.length);
+            };
         });
     }
 
@@ -178,28 +193,59 @@ class MindexDB {
      * @returns {number} The length of the list after the operation
      */
     async rpush(key, ...values) {
-        return this._performTransaction('list', 'readwrite', async (store) => {
-            const list = await store.get(key) || [];
-            list.push(...values);
-            store.put(list, key);
-            return list.length;
+        const transaction = this.db.transaction('list', 'readwrite');
+        const store = transaction.objectStore('list');
+        
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(key);
+            
+            getRequest.onerror = () => reject(getRequest.error);
+            
+            getRequest.onsuccess = () => {
+                let list = getRequest.result;
+                if (!Array.isArray(list)) {
+                    list = [];
+                }
+                list.push(...values);
+                
+                const putRequest = store.put(list, key);
+                
+                putRequest.onerror = () => reject(putRequest.error);
+                putRequest.onsuccess = () => resolve(list.length);
+            };
         });
     }
-
     /**
      * Remove and return the first element of a list
      * @param {string} key - The list key
      * @returns {*} The first element of the list, or null if the list is empty
      */
     async lpop(key) {
-        return this._performTransaction('list', 'readwrite', async (store) => {
-            const list = await store.get(key) || [];
-            if (list.length === 0) return null;
-            const item = list.shift();
-            store.put(list, key);
-            return item;
+        const transaction = this.db.transaction('list', 'readwrite');
+        const store = transaction.objectStore('list');
+        
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(key);
+            
+            getRequest.onerror = () => reject(getRequest.error);
+            
+            getRequest.onsuccess = () => {
+                let list = getRequest.result;
+                if (!Array.isArray(list) || list.length === 0) {
+                    resolve(null);
+                    return;
+                }
+                
+                const item = list.shift();
+                
+                const putRequest = store.put(list, key);
+                
+                putRequest.onerror = () => reject(putRequest.error);
+                putRequest.onsuccess = () => resolve(item);
+            };
         });
     }
+    
 
     /**
      * Remove and return the last element of a list
@@ -207,12 +253,28 @@ class MindexDB {
      * @returns {*} The last element of the list, or null if the list is empty
      */
     async rpop(key) {
-        return this._performTransaction('list', 'readwrite', async (store) => {
-            const list = await store.get(key) || [];
-            if (list.length === 0) return null;
-            const item = list.pop();
-            store.put(list, key);
-            return item;
+        const transaction = this.db.transaction('list', 'readwrite');
+        const store = transaction.objectStore('list');
+        
+        return new Promise((resolve, reject) => {
+            const getRequest = store.get(key);
+            
+            getRequest.onerror = () => reject(getRequest.error);
+            
+            getRequest.onsuccess = () => {
+                let list = getRequest.result;
+                if (!Array.isArray(list) || list.length === 0) {
+                    resolve(null);
+                    return;
+                }
+                
+                const item = list.pop();
+                
+                const putRequest = store.put(list, key);
+                
+                putRequest.onerror = () => reject(putRequest.error);
+                putRequest.onsuccess = () => resolve(item);
+            };
         });
     }
 
@@ -224,11 +286,26 @@ class MindexDB {
      * @returns {Array} The range of elements
      */
     async lrange(key, start, stop) {
-        return this._performTransaction('list', 'readonly', async (store) => {
-            const list = await store.get(key) || [];
-            return list.slice(start, stop + 1);
+        const transaction = this.db.transaction('list', 'readonly');
+        const store = transaction.objectStore('list');
+        
+        return new Promise((resolve, reject) => {
+            const request = store.get(key);
+            
+            request.onerror = () => reject(request.error);
+            
+            request.onsuccess = () => {
+                const list = request.result;
+                if (!Array.isArray(list)) {
+                    resolve([]);
+                } else {
+                    // Adjust stop index if it's negative (counting from the end)
+                    const adjustedStop = stop < 0 ? list.length + stop + 1 : stop + 1;
+                    resolve(list.slice(start, adjustedStop));
+                }
+            };
         });
-    }
+    }    
 
     /**
      * Delete a key and its associated value (works for all types)
