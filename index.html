@@ -8,6 +8,7 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism.min.css" rel="stylesheet" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-javascript.min.js"></script>
+    <script src="mindexdb.js"></script>
 </head>
 <body class="bg-gray-100 flex flex-col min-h-screen">
     <header class="bg-blue-600 text-white">
@@ -86,14 +87,13 @@ await db.expire('user:1', 60); // Expires in 60 seconds
                         <h2 class="text-2xl font-semibold mb-4">Interactive Demo</h2>
                         <div class="space-y-4">
                             <div>
-                                <label class="block mb-2 font-semibold">Operation</label>
                                 <select id="operation" class="w-full p-2 border rounded">
                                     <option value="set">Set</option>
                                     <option value="get">Get</option>
-                                    <option value="hset">HSet</option>
+                                    <!-- <option value="hset">HSet</option>
                                     <option value="hget">HGet</option>
                                     <option value="rpush">RPush</option>
-                                    <option value="lrange">LRange</option>
+                                    <option value="lrange">LRange</option> -->
                                     <option value="del">Delete</option>
                                     <option value="expire">Expire</option>
                                 </select>
@@ -101,7 +101,7 @@ await db.expire('user:1', 60); // Expires in 60 seconds
                             <div id="inputFields" class="space-y-2">
                                 <!-- Input fields will be dynamically added here -->
                             </div>
-                            <button id="executeBtn" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Execute</button>
+                            <button id="execute" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">Execute</button>
                             <div id="result" class="mt-4 p-4 bg-gray-100 rounded hidden"></div>
                         </div>
                     </div>
@@ -132,37 +132,25 @@ await db.expire('user:1', 60); // Expires in 60 seconds
     </footer>
 
     <script>
-        const operationSelect = document.getElementById('operation');
-        const inputFields = document.getElementById('inputFields');
-        const executeBtn = document.getElementById('executeBtn');
-        const resultDiv = document.getElementById('result');
-
-        // Mock MindexDB implementation for demo purposes
-        const mockDB = {
-            set: (key, value) => `Set ${key} to ${value}`,
-            get: (key) => `Value for ${key}`,
-            hset: (hash, key, value) => `Set ${key} in hash ${hash} to ${value}`,
-            hget: (hash, key) => `Value for ${key} in hash ${hash}`,
-            rpush: (key, value) => `Pushed ${value} to the end of list ${key}`,
-            lrange: (key, start, end) => `Range for list ${key}: [${start}, ${end}]`,
-            del: (key) => `Deleted ${key}`,
-            expire: (key, seconds) => `Set expiration for ${key} to ${seconds} seconds`,
-        };
+        const db = new MindexDB('demoDB');
+        let connected = false;
 
         const operationInputs = {
             set: ['Key', 'Value'],
             get: ['Key'],
             hset: ['Hash', 'Key', 'Value'],
             hget: ['Hash', 'Key'],
-            rpush: ['List Key', 'Value'],
-            lrange: ['List Key', 'Start', 'End'],
+            rpush: ['Key', 'Values'],
+            lrange: ['Key', 'Start', 'Stop'],
             del: ['Key'],
-            expire: ['Key', 'Seconds'],
+            expire: ['Key', 'Seconds']
         };
 
         function updateInputFields() {
-            const operation = operationSelect.value;
+            const operation = document.getElementById('operation').value;
+            const inputFields = document.getElementById('inputFields');
             inputFields.innerHTML = '';
+
             operationInputs[operation].forEach(label => {
                 const input = document.createElement('input');
                 input.type = 'text';
@@ -172,20 +160,61 @@ await db.expire('user:1', 60); // Expires in 60 seconds
             });
         }
 
-        function executeOperation() {
-            const operation = operationSelect.value;
-            const args = Array.from(inputFields.children).map(input => input.value);
-            const result = mockDB[operation](...args);
-            resultDiv.textContent = result;
-            resultDiv.classList.remove('hidden');
-        }
+        document.getElementById('operation').addEventListener('change', updateInputFields);
 
-        operationSelect.addEventListener('change', updateInputFields);
-        executeBtn.addEventListener('click', executeOperation);
+        document.getElementById('execute').addEventListener('click', async () => {
+            if (!connected) {
+                await db.connect();
+                connected = true;
+            }
+
+            const operation = document.getElementById('operation').value;
+            const inputs = Array.from(document.getElementById('inputFields').children).map(input => input.value);
+            const resultDiv = document.getElementById('result');
+
+            try {
+                let result;
+                switch (operation) {
+                    case 'set':
+                        await db.set(inputs[0], inputs[1]);
+                        result = 'Value set successfully';
+                        break;
+                    case 'get':
+                        result = await db.get(inputs[0]);
+                        break;
+                    case 'hset':
+                        await db.hset(inputs[0], inputs[1], inputs[2]);
+                        result = 'Hash field set successfully';
+                        break;
+                    case 'hget':
+                        result = await db.hget(inputs[0], inputs[1]);
+                        break;
+                    case 'rpush':
+                        result = await db.rpush(inputs[0], ...inputs[1].split(','));
+                        break;
+                    case 'lrange':
+                        result = await db.lrange(inputs[0], parseInt(inputs[1]), parseInt(inputs[2]));
+                        break;
+                    case 'del':
+                        await db.del(inputs[0]);
+                        result = 'Key deleted successfully';
+                        break;
+                    case 'expire':
+                        await db.expire(inputs[0], parseInt(inputs[1]));
+                        result = 'Expiration set successfully';
+                        break;
+                }
+
+                resultDiv.textContent = JSON.stringify(result, null, 2);
+                resultDiv.classList.remove('hidden');
+            } catch (error) {
+                resultDiv.textContent = `Error: ${error.message}`;
+                resultDiv.classList.remove('hidden');
+            }
+        });
 
         // Initialize input fields
         updateInputFields();
-
         // Initialize Prism.js
         Prism.highlightAll();
     </script>
