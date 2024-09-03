@@ -112,9 +112,17 @@ class MindexDB {
      */
     async hset(hash, key, value) {
         return this._performTransaction('hash', 'readwrite', async (store) => {
-            const hashObj = await store.get(hash) || {};
-            hashObj[key] = value;
-            store.put(hashObj, hash);
+            const request = store.get(hash);
+            return new Promise((resolve, reject) => {
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    const hashObj = request.result || {};
+                    hashObj[key] = value;
+                    const putRequest = store.put(hashObj, hash);
+                    putRequest.onerror = () => reject(putRequest.error);
+                    putRequest.onsuccess = () => resolve();
+                };
+            });
         });
     }
 
@@ -125,9 +133,24 @@ class MindexDB {
      * @returns {*} The value of the field
      */
     async hget(hash, key) {
-        return this._performTransaction('hash', 'readonly', async (store) => {
-            const hashObj = await store.get(hash);
-            return hashObj ? hashObj[key] : undefined;
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction('hash', 'readonly');
+            const store = transaction.objectStore('hash');
+            
+            const request = store.get(hash);
+            
+            request.onerror = (event) => reject(event.target.error);
+            
+            request.onsuccess = (event) => {
+                const hashObj = event.target.result;
+                if (hashObj && typeof hashObj === 'object' && key in hashObj) {
+                    resolve(hashObj[key]);
+                } else {
+                    resolve(null);
+                }
+            };
+            
+            transaction.onerror = (event) => reject(event.target.error);
         });
     }
 
